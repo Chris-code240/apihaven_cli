@@ -6,3 +6,5 @@ psycopg2
 sqlalchemy
 python-dotenv
 bcrypt
+uuid
+alembic

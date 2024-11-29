@@ -7,6 +7,7 @@ from apihaven import (__app_name__, __version__, database, SUCCESS)
 app = typer.Typer()
 User = database.User
 db = database.SessionLocal()
+UserDatabase = database.UserDatabase
 
 def _version_callback(value: bool) -> None:
     if value:
@@ -49,16 +50,19 @@ def signup(
         if existing_user:
             typer.secho(f"User with the username {username} already exist", fg="red")
             raise typer.Exit()
+
+        user_db = UserDatabase()
+        db.add(user_db)
+        db.commit()
         # Create new user
-        new_user = User(username=username, email=email, full_name=full_name)
+        new_user = User(username=username, email=email, full_name=full_name, database = user_db.db_id)
         new_user.set_password(password)  # Hash and set the password
         db.add(new_user)
         db.commit()
-
-        typer.secho("Signup successful!", fg="green")
+        typer.secho(f"Signup successful!\nDB ID: {new_user.database}", fg="green")
 
     except Exception as e:
-        typer.secho(f"Error: {str(e)}", fg="red")
+        typer.secho(f"Error: {str(e.args)}", fg="red")
     finally:
         db.close()  
 
@@ -80,12 +84,16 @@ def user_login(
     password:str = typer.Option(..., help="Password", prompt=True, hide_input=True)
 ):
     user = db.query(User).filter(User.username == username.lower()).first()
+    user_db = db.query(UserDatabase).filter(UserDatabase.db_id == user.database).first()
     if not user:
         typer.secho(f"User does not exist", fg="red")
-        raise typer.Exit(SUCCESS)
+        raise typer.Exit()
+    if not user_db:
+        typer.secho(f"User Databse does not exist", fg="red")
+        raise typer.Exit()
 
     if user and user.check_password(raw_password=password):
-        typer.secho(f"Logged in", fg="green")
+        typer.secho(f"Logged in\nDB ID: {user.database}", fg="green")
         raise typer.Exit()
     else:
         typer.secho(f"Invalid Password", fg="red")
