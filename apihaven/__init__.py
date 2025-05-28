@@ -1,0 +1,2 @@
+APPNAME="APIHaven"
+VERSION="0.0.1"
